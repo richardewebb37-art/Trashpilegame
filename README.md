@@ -1,16 +1,75 @@
-# 🎮 Trash Piles - Native Android Card Game
+# 🃏 Trash Piles - Native Android Card Game
 
-A native Android implementation of the Trash Piles card game, built with Kotlin, Jetpack Compose, and integrated with custom C++ game engines.
+![Android](https://img.shields.io/badge/Android-8.0+-green.svg)
+![Kotlin](https://img.shields.io/badge/Kotlin-1.9.0-blue.svg)
+![Build](https://img.shields.io/badge/Build-Passing-brightgreen.svg)
+
+A native Android card game built with Kotlin, featuring a custom Game Core Management System (GCMS), skill/ability progression system, and premium C++ engines (Skia, Oboe, libGDX).
+
+## 🎮 Game Overview
+
+**Trash Piles** is a strategic card game where players race to arrange cards Ace through 10 in order. The game features:
+
+- 🎴 **Classic Card Game Mechanics** - Draw, place, discard cards strategically
+- 🧠 **Skill &amp; Ability System** - Unlock and use special abilities
+- 📈 **Unlimited Leveling** - Progress through infinite levels with XP rewards
+- 🤖 **AI Opponents** - Play against intelligent AI players
+- 🏆 **Match Scoring** - Earn points based on card placement performance
 
 ## 🏗️ Architecture
 
+### Core Systems
+
+#### 1. GCMS (Game Core Management System)
+The authoritative "brain" of the game that manages all game state and logic.
+
+```kotlin
+// Commands flow through GCMS
+Player Input → Commands → GCMS → Validation → Execution → Events → All Subsystems
+```
+
+**Features:**
+- Single source of truth for game state
+- Command validation before execution
+- Event-driven architecture
+- Immutable state management
+- Command history for undo functionality
+
+#### 2. Refactored Controller Architecture
+New lightweight controller design (2025 refactoring):
+
+- **GCMSControllerRefactored**: 145 lines (75% reduction from 586 lines)
+- **4 Domain Handlers**: Turn, Card, Skill, Match
+- **Command Routing**: Automatic routing to appropriate handlers
+- **Event Broadcasting**: SharedFlow for reactive updates
+
+#### 3. Skill &amp; Ability System
+Comprehensive progression system with two trees:
+
+**Skill Tree:**
+- 15 skills across 3 tiers
+- Unlocked with Skill Points (SP)
+- Permanent character improvements
+
+**Ability Tree:**
+- 9 abilities across 3 tiers
+- Unlocked with Ability Points (AP)
+- Active effects during gameplay
+
+**Leveling:**
+- Unlimited progression using logarithmic formula
+- XP earned from matches and rounds
+- Level-gated unlocks for skills/abilities
+
 ### Technology Stack
-- **Language**: Kotlin
-- **UI Framework**: Jetpack Compose
-- **Architecture**: MVVM + Clean Architecture
-- **Dependency Injection**: Hilt
-- **Build System**: Gradle (Kotlin DSL)
-- **Native Code**: C++ with JNI/NDK integration
+```
+Kotlin (UI + GCMS + Integration)
+    ↕ JNI Bridges
+Premium Engines (C++):
+├─ Skia (2D Graphics Rendering)
+├─ Oboe (Low-latency Audio)
+└─ libGDX (Game Engine Framework)
+```
 
 ### Project Structure
 
@@ -43,37 +102,51 @@ TrashPiles/
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Android Studio Hedgehog (2023.1.1) or later
-- JDK 17
-- Android SDK 34
-- NDK 25.2.9519653 or later
-- CMake 3.22.1 or later
+- **Android Studio**: Latest stable version
+- **Android SDK**: API Level 24 (Android 7.0) or higher
+- **JDK**: 11 or higher
+- **Gradle**: 8.2 (included)
+- **NDK**: r25 or higher (for native engines)
 
-### Building the Project
+### Installation
 
-1. **Clone the repository**
+1. **Clone the repository:**
    ```bash
-   git clone <repository-url>
-   cd TrashPiles
+   git clone https://github.com/richardewebb37-art/Trashpilethe-game.git
+   cd Trashpilethe-game
    ```
 
-2. **Open in Android Studio**
-   - Open Android Studio
-   - Select "Open an Existing Project"
-   - Navigate to the TrashPiles directory
+2. **Open in Android Studio:**
+   - File → Open → Select `TrashPiles` directory
+   - Wait for Gradle sync to complete
 
-3. **Sync Gradle**
-   - Android Studio will automatically sync Gradle
-   - Wait for dependencies to download
-
-4. **Build the project**
+3. **Build the project:**
    ```bash
-   ./gradlew build
+   ./gradlew assembleDebug
    ```
 
-5. **Run on device/emulator**
-   - Connect an Android device or start an emulator
-   - Click the "Run" button in Android Studio
+4. **Run on emulator or device:**
+   - Connect Android device via USB
+   - Enable USB debugging
+   - Click "Run" in Android Studio or use:
+     ```bash
+     ./install-debug.sh
+     ```
+
+### Quick Build Scripts
+
+Three convenient scripts are included:
+
+```bash
+# Quick build (no tests)
+./quick-build.sh
+
+# Build with tests
+./build-and-test.sh
+
+# Build and install on device
+./install-debug.sh
+```
 
 ## 🎯 Features
 
