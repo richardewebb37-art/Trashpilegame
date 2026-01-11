@@ -1,0 +1,22 @@
+.
+├── PROJECT_TREE.txt
+├── QUICK_START.md
+├── README.md
+├── STRUCTURE_SUMMARY.md
+├── app
+│   ├── build.gradle.kts
+│   ├── proguard-rules.pro
+│   └── src
+│       ├── androidTest
+│       ├── main
+│       └── test
+├── build.gradle.kts
+├── buildSrc
+│   └── src
+│       └── main
+├── gradle
+│   └── wrapper
+├── gradle.properties
+└── settings.gradle.kts
+
+11 directories, 9 files

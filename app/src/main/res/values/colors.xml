@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary colors -->
+    <color name="green_700">#1B5E20</color>
+    <color name="green_500">#4CAF50</color>
+    <color name="green_300">#81C784</color>
+    
+    <!-- Card table colors -->
+    <color name="table_green">#1B5E20</color>
+    <color name="table_felt">#2E7D32</color>
+    <color name="card_white">#FAFAFA</color>
+    <color name="card_back">#1565C0</color>
+    
+    <!-- UI colors -->
+    <color name="chip_gold">#FFD700</color>
+    <color name="chip_silver">#C0C0C0</color>
+    <color name="chip_bronze">#CD7F32</color>
+    
+    <!-- Standard colors -->
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>
