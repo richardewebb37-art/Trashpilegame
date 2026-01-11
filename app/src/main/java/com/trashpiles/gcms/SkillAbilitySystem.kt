@@ -60,6 +60,12 @@ data class RoundScoreResult(
 
 /**
  * Tracks a player's progression through the skill/ability system
+ * 
+ * DYNAMIC PROGRESSION SYSTEM:
+ * - XP remains 0 until first ability/skill purchase
+ * - XP can increase or decrease dynamically
+ * - Level recalculates automatically when XP changes
+ * - Level can drop if XP decreases below threshold
  */
 data class PlayerProgress(
     val playerId: String,
@@ -69,35 +75,78 @@ data class PlayerProgress(
     var level: Int = 1,
     val unlockedSkills: MutableList<String> = mutableListOf(),
     val unlockedAbilities: MutableList<String> = mutableListOf(),
-    val matchHistory: MutableList<MatchResult> = mutableListOf()
+    val matchHistory: MutableList<MatchResult> = mutableListOf(),
+    
+    // NEW: Dynamic progression fields
+    var hasPurchasedAny: Boolean = false,  // Has unlocked any node? (XP starts after this)
+    var accumulatedXP: Int = 0,            // Total XP ever earned (for penalty tracking)
+    var lostXP: Int = 0                    // Total XP lost (for penalty calculation)
 ) {
     /**
      * Add a match result and update totals
      * Returns true if player leveled up
+     * 
+     * NOTE: In dynamic progression system, matches only grant SP/AP
+     * XP is granted when unlocking abilities/skills
      */
     fun addMatchResult(result: MatchResult): Boolean {
         val oldLevel = level
         
+        // Only grant SP/AP from matches (no XP until first purchase)
         totalSP += result.spEarned
         totalAP += result.apEarned
         
-        // Calculate XP using the unlimited formula
-        val totalMatches = matchHistory.size + 1
-        val totalRounds = matchHistory.maxOfOrNull { it.roundNumber } ?: 1
-        totalXP = LevelSystem.calculateXP(
-            totalSP,
-            totalAP,
-            level,
-            totalMatches,
-            totalRounds
-        )
-        
         matchHistory.add(result)
         
-        // Check for level up
-        level = LevelSystem.calculateLevel(totalXP)
+        // Level only changes if player has made a purchase
+        if (hasPurchasedAny) {
+            level = LevelSystem.calculateLevel(totalXP)
+        }
         
         return level > oldLevel
+    }
+    
+    /**
+     * Recalculate level based on current XP
+     * Called after any XP change
+     */
+    fun recalculateLevel() {
+        level = if (!hasPurchasedAny) {
+            1  // Always level 1 until first purchase
+        } else {
+            LevelSystem.calculateLevel(totalXP)
+        }
+    }
+    
+    /**
+     * Add XP with penalty tracking
+     * XP only accumulates after first purchase
+     */
+    fun addXP(amount: Int, isPenalty: Boolean = false) {
+        if (!hasPurchasedAny) return  // No XP until first purchase
+        
+        totalXP += amount
+        accumulatedXP += if (isPenalty) 0 else amount
+        if (isPenalty) lostXP += -amount
+        
+        recalculateLevel()
+    }
+    
+    /**
+     * Unlock a node and grant XP reward
+     * First purchase enables XP accumulation
+     */
+    fun unlockNodeWithXP(nodeId: String, pointType: PointType, xpReward: Int) {
+        // First purchase enables XP
+        if (!hasPurchasedAny) {
+            hasPurchasedAny = true
+        }
+        
+        // Add to unlocked
+        unlockNode(nodeId, pointType)
+        
+        // Grant XP
+        addXP(xpReward)
     }
     
     /**
@@ -169,6 +218,8 @@ data class NodeEffect(
 
 /**
  * Base class for skill/ability tree nodes
+ * 
+ * Each node grants XP when unlocked, enabling level progression
  */
 sealed class TreeNode(
     open val id: String,
@@ -176,7 +227,8 @@ sealed class TreeNode(
     open val description: String,
     open val cost: Int,
     open val prerequisites: List<String>,
-    open val effect: NodeEffect
+    open val effect: NodeEffect,
+    open val xpReward: Int = 0  // XP granted when this node is unlocked
 )
 
 /**
@@ -221,12 +273,19 @@ data class AbilityNode(
 object LevelSystem {
     /**
      * Configuration for unlimited level progression
+     * 
+     * DYNAMIC PROGRESSION:
+     * - XP only comes from unlocking abilities/skills
+     * - XP can increase or decrease
+     * - Level recalculates dynamically
+     * - Penalty multiplier applies when regaining lost levels
      */
     data class LevelConfig(
         val baseXP: Int = 100,            // XP threshold for level 2
         val xpMultiplier: Double = 1.2,   // Exponential growth factor
-        val matchBonus: Int = 10,         // XP bonus per match completed
-        val roundBonus: Int = 50          // XP bonus per round completed
+        val matchBonus: Int = 10,         // Match completion bonus (legacy)
+        val roundBonus: Int = 50,         // Round completion bonus (legacy)
+        val penaltyMultiplier: Double = 0.1  // 10% penalty when regaining lost XP
     )
     
     private val config = LevelConfig()
@@ -272,12 +331,10 @@ object LevelSystem {
     /**
      * Calculate XP earned from match completion
      * 
-     * Formula: XP = (SP + AP) × (1 + Level × 0.05) + (Matches × 10) + (Rounds × 50)
+     * LEGACY FUNCTION - NO LONGER USED IN DYNAMIC PROGRESSION
      * 
-     * This ensures XP grows as players:
-     * - Earn more points (SP/AP)
-     * - Play more matches (experience bonus)
-     * - Complete more rounds (milestone bonus)
+     * In dynamic system, XP comes from unlocking abilities/skills, not matches.
+     * This function is kept for backward compatibility.
      */
     fun calculateXP(
         spEarned: Int,
@@ -294,6 +351,17 @@ object LevelSystem {
         val roundXP = totalRounds * config.roundBonus
         
         return pointsXP + matchXP + roundXP
+    }
+    
+    /**
+     * Get XP needed to regain a lost level
+     * Includes penalty multiplier to prevent rapid level cycling
+     * 
+     * Example: Lose 10 XP → Need 10 + (10 × 0.1) = 11 XP to regain
+     */
+    fun getXPToRegainLevel(lostXP: Int): Int {
+        val penalty = (lostXP * config.penaltyMultiplier).toInt()
+        return lostXP + penalty
     }
 }
 
@@ -417,7 +485,8 @@ object SkillTree {
                 type = EffectType.ACTIVE,
                 description = "Reveal 1 face-down card temporarily",
                 value = 1
-            )
+            ),
+            xpReward = 10  // Grants 10 XP when unlocked
         ),
         SkillNode(
             id = "second_chance",
@@ -430,7 +499,8 @@ object SkillTree {
                 type = EffectType.ACTIVE,
                 description = "Discard and draw new card",
                 value = 1
-            )
+            ),
+            xpReward = 15
         ),
         SkillNode(
             id = "quick_draw",
@@ -443,7 +513,8 @@ object SkillTree {
                 type = EffectType.PASSIVE,
                 description = "Reduce draw animation time",
                 value = 0.2f
-            )
+            ),
+            xpReward = 15
         ),
         SkillNode(
             id = "card_memory",
@@ -456,7 +527,8 @@ object SkillTree {
                 type = EffectType.PASSIVE,
                 description = "Display last 2 discarded cards",
                 value = 2
-            )
+            ),
+            xpReward = 20
         ),
         SkillNode(
             id = "loaded_dice",
@@ -469,7 +541,8 @@ object SkillTree {
                 type = EffectType.PASSIVE,
                 description = "Add 1 to dice results",
                 value = 1
-            )
+            ),
+            xpReward = 20
         ),
         SkillNode(
             id = "slot_vision",
@@ -482,7 +555,8 @@ object SkillTree {
                 type = EffectType.PASSIVE,
                 description = "Highlight optimal card placements",
                 value = true
-            )
+            ),
+            xpReward = 25
         ),
         
         // Tier 2 - Level 4-6 Skills
@@ -497,7 +571,8 @@ object SkillTree {
                 type = EffectType.ACTIVE,
                 description = "Exchange positions of 2 cards",
                 value = 2
-            )
+            ),
+            xpReward = 30
         ),
         SkillNode(
             id = "lucky_start",
@@ -510,7 +585,8 @@ object SkillTree {
                 type = EffectType.PASSIVE,
                 description = "Reveal 2 random cards at match start",
                 value = 2
-            )
+            ),
+            xpReward = 40
         ),
         SkillNode(
             id = "speed_play",
@@ -523,7 +599,8 @@ object SkillTree {
                 type = EffectType.PASSIVE,
                 description = "Reduce all animation times",
                 value = 0.3f
-            )
+            ),
+            xpReward = 40
         ),
         SkillNode(
             id = "scavenge",
@@ -536,7 +613,8 @@ object SkillTree {
                 type = EffectType.PASSIVE,
                 description = "Access previously discarded cards",
                 value = true
-            )
+            ),
+            xpReward = 45
         ),
         SkillNode(
             id = "dice_master",
@@ -549,7 +627,8 @@ object SkillTree {
                 type = EffectType.ACTIVE,
                 description = "Reroll your dice result",
                 value = 1
-            )
+            ),
+            xpReward = 50
         ),
         
         // Tier 3 - Level 7-10 Skills
@@ -564,7 +643,8 @@ object SkillTree {
                 type = EffectType.ACTIVE,
                 description = "Exchange positions of up to 3 cards",
                 value = 3
-            )
+            ),
+            xpReward = 60
         ),
         SkillNode(
             id = "fortune_teller",
@@ -577,7 +657,8 @@ object SkillTree {
                 type = EffectType.ACTIVE,
                 description = "Preview upcoming draws",
                 value = 3
-            )
+            ),
+            xpReward = 65
         ),
         SkillNode(
             id = "wild_card_master",
@@ -590,7 +671,8 @@ object SkillTree {
                 type = EffectType.PASSIVE,
                 description = "Kings, Queens, Jacks can go anywhere",
                 value = true
-            )
+            ),
+            xpReward = 75
         ),
         SkillNode(
             id = "perfect_roll",
@@ -603,7 +685,8 @@ object SkillTree {
                 type = EffectType.ACTIVE,
                 description = "Set dice to any value (1-6)",
                 value = 6
-            )
+            ),
+            xpReward = 100
         )
     )
     
@@ -645,7 +728,8 @@ object AbilityTree {
                 type = EffectType.PASSIVE,
                 description = "Jack penalty becomes 0 instead of -1",
                 value = 1
-            )
+            ),
+            xpReward = 15
         ),
         AbilityNode(
             id = "queens_grace",
@@ -658,7 +742,8 @@ object AbilityTree {
                 type = EffectType.PASSIVE,
                 description = "Queen penalty becomes -1 instead of -2",
                 value = 1
-            )
+            ),
+            xpReward = 20
         ),
         AbilityNode(
             id = "kings_mercy",
@@ -671,7 +756,8 @@ object AbilityTree {
                 type = EffectType.PASSIVE,
                 description = "King penalty becomes -2 instead of -3",
                 value = 1
-            )
+            ),
+            xpReward = 20
         ),
         AbilityNode(
             id = "royal_pardon",
@@ -684,7 +770,8 @@ object AbilityTree {
                 type = EffectType.ACTIVE,
                 description = "One match with no K/Q/J penalties",
                 value = 1
-            )
+            ),
+            xpReward = 30
         ),
         
         // Tier 2 - Level 4-6 Abilities
@@ -699,7 +786,8 @@ object AbilityTree {
                 type = EffectType.PASSIVE,
                 description = "K:-2, Q:-1, J:0",
                 value = 1
-            )
+            ),
+            xpReward = 40
         ),
         AbilityNode(
             id = "jokers_escape",
@@ -712,7 +800,8 @@ object AbilityTree {
                 type = EffectType.ACTIVE,
                 description = "One-time Joker penalty immunity",
                 value = 1
-            )
+            ),
+            xpReward = 45
         ),
         AbilityNode(
             id = "jokers_bargain",
@@ -725,7 +814,8 @@ object AbilityTree {
                 type = EffectType.PASSIVE,
                 description = "Joker penalty becomes -10 instead of -20",
                 value = 10
-            )
+            ),
+            xpReward = 50
         ),
         
         // Tier 3 - Level 7-10 Abilities
@@ -740,7 +830,8 @@ object AbilityTree {
                 type = EffectType.PASSIVE,
                 description = "All face card penalties = 0",
                 value = true
-            )
+            ),
+            xpReward = 80
         ),
         AbilityNode(
             id = "jokers_ally",
@@ -753,7 +844,8 @@ object AbilityTree {
                 type = EffectType.PASSIVE,
                 description = "Joker becomes beneficial",
                 value = 30
-            )
+            ),
+            xpReward = 100
         )
     )
     

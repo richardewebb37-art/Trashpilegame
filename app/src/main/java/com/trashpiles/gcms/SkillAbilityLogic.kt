@@ -192,16 +192,9 @@ fun processMatchCompletion(
     val spEarned = baseSP  // SP is never penalized
     val apEarned = maxOf(0, baseAP + totalAPPenalty)  // AP reduced by penalties, can't go negative
     
-    // Calculate XP using unlimited formula (includes match and round bonuses)
-    val totalMatches = progress.matchHistory.size + 1
-    val totalRounds = progress.matchHistory.maxOfOrNull { it.roundNumber } ?: 1
-    val xpEarned = LevelSystem.calculateXP(
-        spEarned,
-        apEarned,
-        progress.level,
-        totalMatches,
-        totalRounds
-    )
+    // In dynamic progression system, matches do NOT grant XP
+    // XP only comes from unlocking abilities/skills
+    val xpEarned = 0
     
     // Create penalty list for display
     val penalties = mutableListOf<CardPenalty>()
@@ -312,16 +305,17 @@ fun unlockNode(
         )
     }
     
-    // All checks passed - unlock the node
-    progress.deductPoints(node.cost, pointType)
-    progress.unlockNode(nodeId, pointType)
+    // All checks passed - unlock the node and grant XP
+    progress.unlockNodeWithXP(nodeId, pointType, node.xpReward)
     
     return UnlockResult(
         success = true,
         message = "Unlocked: ${node.name}",
         nodeId = nodeId,
         nodeName = node.name,
-        pointsSpent = node.cost
+        pointsSpent = node.cost,
+        xpEarned = node.xpReward,
+        newLevel = progress.level
     )
 }
 
@@ -333,7 +327,9 @@ data class UnlockResult(
     val message: String,
     val nodeId: String? = null,
     val nodeName: String? = null,
-    val pointsSpent: Int? = null
+    val pointsSpent: Int? = null,
+    val xpEarned: Int? = null,  // NEW: XP earned from unlocking
+    val newLevel: Int? = null    // NEW: New level after XP change
 )
 
 /**
@@ -510,6 +506,135 @@ data class AbilityResult(
     val abilityId: String? = null,
     val abilityName: String? = null
 )
+
+/**
+ * Result of selling a node (XP loss scenario)
+ */
+data class SellResult(
+    val success: Boolean,
+    val message: String,
+    val nodeId: String? = null,
+    val nodeName: String? = null,
+    val xpLost: Int? = null,
+    val pointsRefunded: Int? = null,
+    val newLevel: Int? = null
+)
+
+/**
+ * Result of applying XP penalty
+ */
+data class PenaltyResult(
+    val success: Boolean,
+    val message: String,
+    val xpLost: Int? = null,
+    val newLevel: Int? = null,
+    val xpToRegainLevel: Int? = null
+)
+
+/**
+ * Sell an unlocked node (lose XP)
+ * 
+ * @param state Current GCMS state
+ * @param playerId ID of the player
+ * @param nodeId ID of the node to sell
+ * @param pointType Type of points (SKILL or ABILITY)
+ * @return Result with success status and XP lost
+ */
+fun sellNode(
+    state: GCMSState,
+    playerId: String,
+    nodeId: String,
+    pointType: PointType
+): SellResult {
+    val progress = state.skillAbilitySystem.getPlayerProgress(playerId)
+    
+    // Check if node is unlocked
+    if (!progress.isUnlocked(nodeId, pointType)) {
+        return SellResult(
+            success = false,
+            message = "Node not unlocked: $nodeId"
+        )
+    }
+    
+    // Get the node
+    val node = when (pointType) {
+        PointType.SKILL -> SkillTree.getNode(nodeId)
+        PointType.ABILITY -> AbilityTree.getNode(nodeId)
+    } ?: return SellResult(
+        success = false,
+        message = "Node not found: $nodeId"
+    )
+    
+    // Remove from unlocked
+    when (pointType) {
+        PointType.SKILL -> progress.unlockedSkills.remove(nodeId)
+        PointType.ABILITY -> progress.unlockedAbilities.remove(nodeId)
+    }
+    
+    // Lose XP (full amount granted)
+    progress.addXP(-node.xpReward, isPenalty = true)
+    
+    // Return partial points (50% refund)
+    val refund = (node.cost * 0.5).toInt()
+    when (pointType) {
+        PointType.SKILL -> progress.totalSP += refund
+        PointType.ABILITY -> progress.totalAP += refund
+    }
+    
+    return SellResult(
+        success = true,
+        message = "Sold: ${node.name}",
+        nodeId = nodeId,
+        nodeName = node.name,
+        xpLost = node.xpReward,
+        pointsRefunded = refund,
+        newLevel = progress.level
+    )
+}
+
+/**
+ * Apply an XP penalty to a player
+ * 
+ * @param state Current GCMS state
+ * @param playerId ID of the player
+ * @param amount Amount of XP to lose
+ * @return Result with XP lost and level change
+ */
+fun applyXPPenalty(
+    state: GCMSState,
+    playerId: String,
+    amount: Int
+): PenaltyResult {
+    val progress = state.skillAbilitySystem.getPlayerProgress(playerId)
+    
+    if (!progress.hasPurchasedAny) {
+        return PenaltyResult(
+            success = false,
+            message = "No XP to lose (no purchases made yet)"
+        )
+    }
+    
+    if (amount <= 0) {
+        return PenaltyResult(
+            success = false,
+            message = "Penalty amount must be positive"
+        )
+    }
+    
+    // Apply penalty
+    progress.addXP(-amount, isPenalty = true)
+    
+    // Calculate XP needed to regain level
+    val needed = LevelSystem.getXPToRegainLevel(amount)
+    
+    return PenaltyResult(
+        success = true,
+        message = "Lost $amount XP",
+        xpLost = amount,
+        newLevel = progress.level,
+        xpToRegainLevel = needed
+    )
+}
 
 /**
  * Check if a player has a specific skill unlocked
