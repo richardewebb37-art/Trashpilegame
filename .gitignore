@@ -85,3 +85,13 @@ lint/tmp/
 
 # macOS
 .DS_Store
+
+# Gradle Wrapper
+gradle/wrapper/gradle-wrapper.properties
+
+# Android Studio generated files
+local.properties
+*.iml
+.idea/
+.cxx/
+.externalNativeBuild
