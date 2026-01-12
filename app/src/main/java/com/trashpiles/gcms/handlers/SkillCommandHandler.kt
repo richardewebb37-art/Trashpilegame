@@ -52,17 +52,27 @@ class SkillCommandHandler : CommandHandler {
             ))
         }
         
-        val events = listOf(
-            GCMSEvent.NodeUnlockedEvent(
-                playerId = command.playerId,
-                nodeId = command.nodeId,
-                nodeName = result.nodeName ?: "",
-                pointType = command.pointType,
-                pointsSpent = result.pointsSpent ?: 0
-            )
+        var updatedState = state
+        
+        val nodeUnlockedEvent = GCMSEvent.NodeUnlockedEvent(
+            playerId = command.playerId,
+            nodeId = command.nodeId,
+            nodeName = result.nodeName ?: "",
+            pointType = command.pointType,
+            pointsSpent = result.pointsSpent ?: 0
         )
         
-        return CommandResult(state, events)
+        // Update challenge progress with skill unlock
+        val (updatedChallengeData, challengeEvents) = ChallengeIntegration.handleGameEvent(
+            nodeUnlockedEvent,
+            updatedState.challengeSystem
+        )
+        updatedState = updatedState.copyWith(challengeSystem = updatedChallengeData)
+        
+        val events = mutableListOf(nodeUnlockedEvent)
+        events.addAll(challengeEvents)
+        
+        return CommandResult(updatedState, events)
     }
     
     private fun handleUseAbility(command: GCMSCommand.UseAbilityCommand, state: GCMSState): CommandResult {
@@ -86,15 +96,25 @@ class SkillCommandHandler : CommandHandler {
             ))
         }
         
-        val events = listOf(
-            GCMSEvent.AbilityUsedEvent(
-                playerId = command.playerId,
-                abilityId = command.abilityId,
-                abilityName = result.abilityName ?: "",
-                effectDescription = result.message
-            )
+        var updatedState = state
+        
+        val abilityUsedEvent = GCMSEvent.AbilityUsedEvent(
+            playerId = command.playerId,
+            abilityId = command.abilityId,
+            abilityName = result.abilityName ?: "",
+            effectDescription = result.message
         )
         
-        return CommandResult(state, events)
+        // Update challenge progress with ability usage
+        val (updatedChallengeData, challengeEvents) = ChallengeIntegration.handleGameEvent(
+            abilityUsedEvent,
+            updatedState.challengeSystem
+        )
+        updatedState = updatedState.copyWith(challengeSystem = updatedChallengeData)
+        
+        val events = mutableListOf(abilityUsedEvent)
+        events.addAll(challengeEvents)
+        
+        return CommandResult(updatedState, events)
     }
 }

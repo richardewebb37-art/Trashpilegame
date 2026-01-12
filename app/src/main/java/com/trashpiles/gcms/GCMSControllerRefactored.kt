@@ -26,6 +26,21 @@ class GCMSControllerRefactored {
     // Current game state
     private var currentState: GCMSState = GCMSState()
     
+    // Initialize challenge system on creation
+    init {
+        initializeChallenges()
+    }
+    
+    private fun initializeChallenges() {
+        val challengeEvents = ChallengeIntegration.initializeChallengeSystem()
+        currentState = currentState.copyWith(
+            challengeSystem = challengeEvents.firstOrNull()?.let {
+                // Extract challenge data from initialization
+                currentState.challengeSystem
+            } ?: currentState.challengeSystem
+        )
+    }
+    
     // State history for undo functionality
     private val stateHistory = mutableListOf<GCMSState>()
     private val maxHistorySize = 50
@@ -43,6 +58,7 @@ class GCMSControllerRefactored {
     private val cardHandler = CardCommandHandler()
     private val skillHandler = SkillCommandHandler()
     private val matchHandler = MatchCommandHandler()
+    private val challengeHandler = ChallengeCommandHandler()
     
     /**
      * Submit a command for execution
@@ -117,6 +133,11 @@ class GCMSControllerRefactored {
             is GCMSCommand.SaveGameCommand,
             is GCMSCommand.LoadGameCommand,
             is GCMSCommand.RequestAIActionCommand -> matchHandler.handle(command, currentState)
+            
+            // Challenge commands
+            is GCMSCommand.ViewChallengesCommand,
+            is GCMSCommand.CheckLevelUpCommand,
+            is GCMSCommand.ClaimChallengeRewardsCommand -> challengeHandler.handle(command, currentState)
             
             // Unknown commands
             else -> CommandResult(currentState, listOf(

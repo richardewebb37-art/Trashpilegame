@@ -26,16 +26,19 @@ object GCMSValidator {
         
         // Command-specific validation
         return when (command) {
-            is GCMSCommand.InitializeGame -> validateInitializeGame(command, state)
-            is GCMSCommand.StartGame -> validateStartGame(command, state)
-            is GCMSCommand.DrawCard -> validateDrawCard(command, state)
-            is GCMSCommand.PlaceCard -> validatePlaceCard(command, state)
-            is GCMSCommand.DiscardCard -> validateDiscardCard(command, state)
-            is GCMSCommand.FlipCard -> validateFlipCard(command, state)
-            is GCMSCommand.EndTurn -> validateEndTurn(command, state)
-            is GCMSCommand.SkipTurn -> validateSkipTurn(command, state)
-            is GCMSCommand.SaveGame -> validateSaveGame(command, state)
-            is GCMSCommand.LoadGame -> validateLoadGame(command, state)
+            is GCMSCommand.InitializeGameCommand -> validateInitializeGame(command, state)
+            is GCMSCommand.StartGameCommand -> validateStartGame(command, state)
+            is GCMSCommand.DrawCardCommand -> validateDrawCard(command, state)
+            is GCMSCommand.PlaceCardCommand -> validatePlaceCard(command, state)
+            is GCMSCommand.DiscardCardCommand -> validateDiscardCard(command, state)
+            is GCMSCommand.FlipCardCommand -> validateFlipCard(command, state)
+            is GCMSCommand.EndTurnCommand -> validateEndTurn(command, state)
+            is GCMSCommand.SkipTurnCommand -> validateSkipTurn(command, state)
+            is GCMSCommand.SaveGameCommand -> validateSaveGame(command, state)
+            is GCMSCommand.LoadGameCommand -> validateLoadGame(command, state)
+            is GCMSCommand.ViewChallengesCommand -> validateViewChallenges(command, state)
+            is GCMSCommand.CheckLevelUpCommand -> validateCheckLevelUp(command, state)
+            is GCMSCommand.ClaimChallengeRewardsCommand -> validateClaimRewards(command, state)
             // Default: allow unlisted commands
             else -> ValidationResult.Valid
         }
@@ -285,11 +288,45 @@ object GCMSValidator {
      * Validate LoadGameCommand
      */
     private fun validateLoadGame(
-        cmd: GCMSCommand.LoadGame,
+        cmd: GCMSCommand.LoadGameCommand,
         state: GCMSState
     ): ValidationResult {
         if (cmd.saveId.isEmpty()) {
             return ValidationResult.Invalid("Invalid save ID")
+        }
+        
+        return ValidationResult.Valid
+    }
+    
+    /**
+     * Validate ViewChallengesCommand
+     */
+    private fun validateViewChallenges(
+        cmd: GCMSCommand.ViewChallengesCommand,
+        state: GCMSState
+    ): ValidationResult {
+        return ValidationResult.Valid
+    }
+    
+    /**
+     * Validate CheckLevelUpCommand
+     */
+    private fun validateCheckLevelUp(
+        cmd: GCMSCommand.CheckLevelUpCommand,
+        state: GCMSState
+    ): ValidationResult {
+        return ValidationResult.Valid
+    }
+    
+    /**
+     * Validate ClaimChallengeRewardsCommand
+     */
+    private fun validateClaimRewards(
+        cmd: GCMSCommand.ClaimChallengeRewardsCommand,
+        state: GCMSState
+    ): ValidationResult {
+        if (cmd.challengeId.isEmpty()) {
+            return ValidationResult.Invalid("Invalid challenge ID")
         }
         
         return ValidationResult.Valid

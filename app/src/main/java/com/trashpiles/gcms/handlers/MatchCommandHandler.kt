@@ -31,6 +31,10 @@ class MatchCommandHandler : CommandHandler {
     }
     
     private fun handleInitializeGame(command: GCMSCommand.InitializeGameCommand, state: GCMSState): CommandResult {
+        // Initialize challenge system if not already done
+        val challengeEvents = ChallengeIntegration.initializeChallengeSystem()
+        val initialChallengeData = state.challengeSystem
+        
         // Create players
         val players = command.playerNames.mapIndexed { index, name ->
             PlayerState(
@@ -52,15 +56,21 @@ class MatchCommandHandler : CommandHandler {
             players = players,
             currentPlayerIndex = 0,
             deck = shuffledDeck,
-            discardPile = emptyList()
+            discardPile = emptyList(),
+            challengeSystem = initialChallengeData
         )
         
-        val events = listOf(
+        val events = mutableListOf(
             GCMSEvent.GameInitializedEvent(
                 playerCount = players.size,
                 playerNames = command.playerNames
             )
         )
+        
+        // Add challenge assignment event
+        if (challengeEvents.isNotEmpty()) {
+            events.addAll(challengeEvents)
+        }
         
         return CommandResult(updatedState, events)
     }
@@ -104,7 +114,7 @@ class MatchCommandHandler : CommandHandler {
     private fun handleEndGame(command: GCMSCommand.EndGameCommand, state: GCMSState): CommandResult {
         val winner = state.players.maxByOrNull { it.score }
         
-        val updatedState = state.copy(
+        var updatedState = state.copy(
             currentPhase = GamePhase.GAME_OVER
         )
         
@@ -115,6 +125,19 @@ class MatchCommandHandler : CommandHandler {
                 finalScores = state.players.associate { it.id to it.score }
             )
         )
+        
+        // Update challenge progress with game over event
+        val gameEvent = GCMSEvent.GameOverEvent(
+            winnerId = winner?.id ?: -1,
+            winnerName = winner?.name ?: "Unknown",
+            finalScores = state.players.associate { it.id to it.score }
+        )
+        val (updatedChallengeData, challengeEvents) = ChallengeIntegration.handleGameEvent(
+            gameEvent,
+            updatedState.challengeSystem
+        )
+        updatedState = updatedState.copyWith(challengeSystem = updatedChallengeData)
+        events.addAll(challengeEvents)
         
         // If match completed, process skill/ability rewards
         if (winner != null && command.reason == "completed") {

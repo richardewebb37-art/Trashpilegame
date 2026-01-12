@@ -191,3 +191,29 @@ data class UseAbilityCommand(
     override val timestamp: Long = System.currentTimeMillis(),
     override val commandId: String = generateId()
 ) : GCMSCommand()
+
+// ============================================================================
+// CHALLENGE SYSTEM COMMANDS
+// ============================================================================
+
+@Serializable
+data class ViewChallengesCommand(
+    val playerId: String,
+    override val timestamp: Long = System.currentTimeMillis(),
+    override val commandId: String = generateId()
+) : GCMSCommand()
+
+@Serializable
+data class CheckLevelUpCommand(
+    val playerId: String,
+    override val timestamp: Long = System.currentTimeMillis(),
+    override val commandId: String = generateId()
+) : GCMSCommand()
+
+@Serializable
+data class ClaimChallengeRewardsCommand(
+    val playerId: String,
+    val challengeId: String,
+    override val timestamp: Long = System.currentTimeMillis(),
+    override val commandId: String = generateId()
+) : GCMSCommand()

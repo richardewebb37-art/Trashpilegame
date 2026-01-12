@@ -134,7 +134,7 @@ class CardCommandHandler : CommandHandler {
         // Remove card from deck/discard
         val updatedDeck = state.deck.filter { it.id != command.cardId }
         
-        val updatedState = state.copy(
+        var updatedState = state.copy(
             players = updatedPlayers,
             deck = updatedDeck,
             discardPile = updatedDiscard
@@ -148,6 +148,20 @@ class CardCommandHandler : CommandHandler {
                 replacedCardId = if (replacedCard.faceUp) replacedCard.id else null
             )
         )
+        
+        // Update challenge progress with card placement
+        val cardPlacedEvent = GCMSEvent.CardPlacedEvent(
+            cardId = command.cardId,
+            playerId = currentPlayer.id,
+            slotIndex = command.slotIndex,
+            replacedCardId = if (replacedCard.faceUp) replacedCard.id else null
+        )
+        val (updatedChallengeData, challengeEvents) = ChallengeIntegration.handleGameEvent(
+            cardPlacedEvent,
+            updatedState.challengeSystem
+        )
+        updatedState = updatedState.copyWith(challengeSystem = updatedChallengeData)
+        events.addAll(challengeEvents)
         
         // Check if player won the round
         if (GameRules.hasPlayerWon(updatedPlayer)) {
