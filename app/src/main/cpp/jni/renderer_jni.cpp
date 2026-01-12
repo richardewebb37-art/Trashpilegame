@@ -1,145 +1,159 @@
 #include <jni.h>
 #include <android/log.h>
-#include "../renderer/renderer_wrapper.h"
+#include <android/asset_manager.h>
+#include <android/asset_manager_jni.h>
+#include "renderer/renderer_wrapper.h"
 
-#define LOG_TAG "TrashPiles-Renderer-JNI"
+#define LOG_TAG "TrashPiles-RendererJNI"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
-extern TrashPiles::RendererWrapper* g_renderer;
-
 extern "C" {
 
-/**
- * Initialize the renderer
- */
+// Global renderer instance
+static TrashPiles::RendererWrapper* g_renderer = nullptr;
+
+JNIEXPORT jlong JNICALL
+Java_com_trashpiles_RendererBridge_nativeCreateRenderer(JNIEnv* env, jobject thiz) {
+    if (g_renderer) {
+        LOGE("Renderer already created");
+        return 0;
+    }
+    
+    g_renderer = new TrashPiles::RendererWrapper();
+    LOGI("Renderer created");
+    return reinterpret_cast<jlong>(g_renderer);
+}
+
+JNIEXPORT void JNICALL
+Java_com_trashpiles_RendererBridge_nativeDestroyRenderer(JNIEnv* env, jobject thiz, jlong renderer_ptr) {
+    TrashPiles::RendererWrapper* renderer = reinterpret_cast<TrashPiles::RendererWrapper*>(renderer_ptr);
+    if (renderer) {
+        delete renderer;
+        if (renderer == g_renderer) {
+            g_renderer = nullptr;
+        }
+        LOGI("Renderer destroyed");
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_trashpiles_RendererBridge_nativeSetAssetManager(JNIEnv* env, jobject thiz, jlong renderer_ptr, jobject asset_manager) {
+    TrashPiles::RendererWrapper* renderer = reinterpret_cast<TrashPiles::RendererWrapper*>(renderer_ptr);
+    if (!renderer) return;
+    
+    AAssetManager* assetManager = AAssetManager_fromJava(env, asset_manager);
+    TrashPiles::RendererWrapper::setAssetManager(assetManager);
+    LOGI("Asset manager set for renderer");
+}
+
 JNIEXPORT jboolean JNICALL
-Java_com_trashpiles_native_RendererBridge_initRenderer(
-    JNIEnv* env, jobject obj, jint width, jint height) {
-    
-    LOGI("JNI: initRenderer called with %dx%d", width, height);
-    
-    if (!g_renderer) {
-        LOGE("Renderer instance is null!");
+Java_com_trashpiles_RendererBridge_nativeInitialize(JNIEnv* env, jobject thiz, jlong renderer_ptr, jint width, jint height) {
+    TrashPiles::RendererWrapper* renderer = reinterpret_cast<TrashPiles::RendererWrapper*>(renderer_ptr);
+    if (!renderer) {
+        LOGE("Cannot initialize - renderer is null");
         return JNI_FALSE;
     }
     
-    bool success = g_renderer->initialize(width, height);
-    return success ? JNI_TRUE : JNI_FALSE;
+    bool result = renderer->initialize(width, height);
+    LOGI("Renderer initialization: %s", result ? "SUCCESS" : "FAILED");
+    return result ? JNI_TRUE : JNI_FALSE;
 }
 
-/**
- * Begin rendering a frame
- */
 JNIEXPORT void JNICALL
-Java_com_trashpiles_native_RendererBridge_beginFrame(
-    JNIEnv* env, jobject obj) {
-    
-    if (g_renderer) {
-        g_renderer->beginFrame();
+Java_com_trashpiles_RendererBridge_nativeCleanup(JNIEnv* env, jobject thiz, jlong renderer_ptr) {
+    TrashPiles::RendererWrapper* renderer = reinterpret_cast<TrashPiles::RendererWrapper*>(renderer_ptr);
+    if (renderer) {
+        renderer->cleanup();
+        LOGI("Renderer cleanup completed");
     }
 }
 
-/**
- * End rendering a frame
- */
 JNIEXPORT void JNICALL
-Java_com_trashpiles_native_RendererBridge_endFrame(
-    JNIEnv* env, jobject obj) {
-    
-    if (g_renderer) {
-        g_renderer->endFrame();
+Java_com_trashpiles_RendererBridge_nativeBeginFrame(JNIEnv* env, jobject thiz, jlong renderer_ptr) {
+    TrashPiles::RendererWrapper* renderer = reinterpret_cast<TrashPiles::RendererWrapper*>(renderer_ptr);
+    if (renderer) {
+        renderer->beginFrame();
     }
 }
 
-/**
- * Clear the screen
- */
 JNIEXPORT void JNICALL
-Java_com_trashpiles_native_RendererBridge_clear(
-    JNIEnv* env, jobject obj, jfloat r, jfloat g, jfloat b, jfloat a) {
-    
-    if (g_renderer) {
-        g_renderer->clear(r, g, b, a);
+Java_com_trashpiles_RendererBridge_nativeEndFrame(JNIEnv* env, jobject thiz, jlong renderer_ptr) {
+    TrashPiles::RendererWrapper* renderer = reinterpret_cast<TrashPiles::RendererWrapper*>(renderer_ptr);
+    if (renderer) {
+        renderer->endFrame();
     }
 }
 
-/**
- * Render a card
- */
 JNIEXPORT void JNICALL
-Java_com_trashpiles_native_RendererBridge_renderCard(
-    JNIEnv* env, jobject obj, 
-    jint cardId, jfloat x, jfloat y, jfloat width, jfloat height, jboolean faceUp) {
-    
-    if (g_renderer) {
-        g_renderer->renderCard(cardId, x, y, width, height, faceUp == JNI_TRUE);
+Java_com_trashpiles_RendererBridge_nativeClear(JNIEnv* env, jobject thiz, jlong renderer_ptr, jfloat r, jfloat g, jfloat b, jfloat a) {
+    TrashPiles::RendererWrapper* renderer = reinterpret_cast<TrashPiles::RendererWrapper*>(renderer_ptr);
+    if (renderer) {
+        renderer->clear(r, g, b, a);
     }
 }
 
-/**
- * Render card back
- */
 JNIEXPORT void JNICALL
-Java_com_trashpiles_native_RendererBridge_renderCardBack(
-    JNIEnv* env, jobject obj, jfloat x, jfloat y, jfloat width, jfloat height) {
-    
-    if (g_renderer) {
-        g_renderer->renderCardBack(x, y, width, height);
+Java_com_trashpiles_RendererBridge_nativeRenderCard(JNIEnv* env, jobject thiz, jlong renderer_ptr, jint card_id, jfloat x, jfloat y, jfloat width, jfloat height, jboolean face_up) {
+    TrashPiles::RendererWrapper* renderer = reinterpret_cast<TrashPiles::RendererWrapper*>(renderer_ptr);
+    if (renderer) {
+        renderer->renderCard(card_id, x, y, width, height, face_up);
     }
 }
 
-/**
- * Render a button
- */
 JNIEXPORT void JNICALL
-Java_com_trashpiles_native_RendererBridge_renderButton(
-    JNIEnv* env, jobject obj, jstring buttonId, jfloat x, jfloat y, jfloat width, jfloat height) {
-    
-    if (!g_renderer) return;
-    
-    const char* id = env->GetStringUTFChars(buttonId, nullptr);
-    g_renderer->renderButton(id, x, y, width, height);
-    env->ReleaseStringUTFChars(buttonId, id);
-}
-
-/**
- * Render text
- */
-JNIEXPORT void JNICALL
-Java_com_trashpiles_native_RendererBridge_renderText(
-    JNIEnv* env, jobject obj, jstring text, jfloat x, jfloat y, jfloat size) {
-    
-    if (!g_renderer) return;
-    
-    const char* txt = env->GetStringUTFChars(text, nullptr);
-    g_renderer->renderText(txt, x, y, size);
-    env->ReleaseStringUTFChars(text, txt);
-}
-
-/**
- * Set card rotation for animation
- */
-JNIEXPORT void JNICALL
-Java_com_trashpiles_native_RendererBridge_setCardRotation(
-    JNIEnv* env, jobject obj, jint cardId, jfloat angle) {
-    
-    if (g_renderer) {
-        g_renderer->setCardRotation(cardId, angle);
+Java_com_trashpiles_RendererBridge_nativeRenderCardBack(JNIEnv* env, jobject thiz, jlong renderer_ptr, jfloat x, jfloat y, jfloat width, jfloat height) {
+    TrashPiles::RendererWrapper* renderer = reinterpret_cast<TrashPiles::RendererWrapper*>(renderer_ptr);
+    if (renderer) {
+        renderer->renderCardBack(x, y, width, height);
     }
 }
 
-/**
- * Cleanup renderer
- */
 JNIEXPORT void JNICALL
-Java_com_trashpiles_native_RendererBridge_cleanup(
-    JNIEnv* env, jobject obj) {
+Java_com_trashpiles_RendererBridge_nativeRenderButton(JNIEnv* env, jobject thiz, jlong renderer_ptr, jstring button_id, jfloat x, jfloat y, jfloat width, jfloat height) {
+    TrashPiles::RendererWrapper* renderer = reinterpret_cast<TrashPiles::RendererWrapper*>(renderer_ptr);
+    if (!renderer) return;
     
-    LOGI("JNI: cleanup called");
+    const char* buttonIdStr = env->GetStringUTFChars(button_id, nullptr);
+    if (buttonIdStr) {
+        renderer->renderButton(buttonIdStr, x, y, width, height);
+        env->ReleaseStringUTFChars(button_id, buttonIdStr);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_trashpiles_RendererBridge_nativeRenderText(JNIEnv* env, jobject thiz, jlong renderer_ptr, jstring text, jfloat x, jfloat y, jfloat size) {
+    TrashPiles::RendererWrapper* renderer = reinterpret_cast<TrashPiles::RendererWrapper*>(renderer_ptr);
+    if (!renderer) return;
     
-    if (g_renderer) {
-        g_renderer->cleanup();
+    const char* textStr = env->GetStringUTFChars(text, nullptr);
+    if (textStr) {
+        renderer->renderText(textStr, x, y, size);
+        env->ReleaseStringUTFChars(text, textStr);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_trashpiles_RendererBridge_nativeSetCardRotation(JNIEnv* env, jobject thiz, jlong renderer_ptr, jint card_id, jfloat angle) {
+    TrashPiles::RendererWrapper* renderer = reinterpret_cast<TrashPiles::RendererWrapper*>(renderer_ptr);
+    if (renderer) {
+        renderer->setCardRotation(card_id, angle);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_trashpiles_RendererBridge_nativeSetCardScale(JNIEnv* env, jobject thiz, jlong renderer_ptr, jint card_id, jfloat scale_x, jfloat scale_y) {
+    TrashPiles::RendererWrapper* renderer = reinterpret_cast<TrashPiles::RendererWrapper*>(renderer_ptr);
+    if (renderer) {
+        renderer->setCardScale(card_id, scale_x, scale_y);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_trashpiles_RendererBridge_nativeSetCardAlpha(JNIEnv* env, jobject thiz, jlong renderer_ptr, jint card_id, jfloat alpha) {
+    TrashPiles::RendererWrapper* renderer = reinterpret_cast<TrashPiles::RendererWrapper*>(renderer_ptr);
+    if (renderer) {
+        renderer->setCardAlpha(card_id, alpha);
     }
 }
 

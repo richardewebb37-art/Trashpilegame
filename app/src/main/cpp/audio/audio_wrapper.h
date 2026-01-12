@@ -56,8 +56,17 @@ private:
     bool m_initialized;
     bool m_musicPlaying;
     
-    // Sound management
-    std::map<std::string, int> m_loadedSounds;
+    // Asset management
+    static void setAssetManager(AAssetManager* assetManager);
+    
+    // Audio data structures
+    struct AudioData;
+    std::map<std::string, AudioData*> m_loadedSounds;
+    std::map<std::string, AudioData*> m_loadedMusic;
+    
+    // Loading methods
+    bool loadSound(const std::string& soundName);
+    bool loadMusic(const std::string& musicName);
 };
 
 } // namespace TrashPiles

@@ -2,12 +2,22 @@
 #define TRASHPILES_RENDERER_WRAPPER_H
 
 #include <android/log.h>
+#include <skia/core/SkSurface.h>
+#include <skia/core/SkCanvas.h>
+#include <skia/core/SkPaint.h>
+#include <memory>
+#include <map>
 
 #define LOG_TAG "TrashPiles-Renderer"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
+struct AAssetManager;
+
 namespace TrashPiles {
+
+// Forward declaration for card animation state
+struct CardState;
 
 /**
  * Renderer Wrapper - Interfaces with Skia Graphics Engine
@@ -17,6 +27,9 @@ class RendererWrapper {
 public:
     RendererWrapper();
     ~RendererWrapper();
+    
+    // Asset management
+    static void setAssetManager(AAssetManager* assetManager);
     
     // Initialization
     bool initialize(int width, int height);
@@ -44,6 +57,35 @@ private:
     int m_width;
     int m_height;
     bool m_initialized;
+    
+    // Skia resources
+    sk_sp<SkSurface> m_surface;
+    SkCanvas* m_canvas;
+    
+    // Paints for different rendering tasks
+    SkPaint m_cardPaint;
+    SkPaint m_cardBorderPaint;
+    SkPaint m_cardBackPaint;
+    SkPaint m_textPaint;
+    
+    // Card animation states
+    std::map<int, CardState> m_cardStates;
+    
+    // Helper methods
+    void drawCardValue(int cardId, float x, float y, float width, float height);
+    void drawCardBackPattern(float x, float y, float width, float height);
+    const char* getCardValueText(int value);
+    const char* getSuitSymbol(int suit);
+};
+
+// Card animation state structure
+struct CardState {
+    float rotation = 0.0f;
+    float scaleX = 1.0f;
+    float scaleY = 1.0f;
+    float alpha = 1.0f;
+    float x = 0.0f;
+    float y = 0.0f;
 };
 
 } // namespace TrashPiles

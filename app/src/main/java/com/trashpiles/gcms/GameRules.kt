@@ -47,9 +47,9 @@ object GameRules {
     }
     
     /**
-     * Calculate player's score for the round
+     * Calculate player's score for the round with skill bonuses
      */
-    fun calculateScore(player: PlayerState): Int {
+    fun calculateScore(player: PlayerState, gameState: GCMSState): Int {
         var score = 0
         
         // Count face-down cards (penalty points)
@@ -59,7 +59,26 @@ object GameRules {
             }
         }
         
-        return score
+        // Apply active skill effects
+        var finalScore = score
+        gameState.activeSkillEffects.forEach { effect ->
+            if (effect.playerId == player.id) {
+                when (effect.effectType) {
+                    SkillEffectType.SCORE_MULTIPLIER -> {
+                        finalScore = (finalScore * effect.value).toInt()
+                    }
+                    SkillEffectType.DOUBLE_POINTS -> {
+                        finalScore *= 2
+                    }
+                    SkillEffectType.SHIELD -> {
+                        finalScore = maxOf(0, finalScore - 1) // Reduce penalty by 1
+                    }
+                    else -> { /* No score effect */ }
+                }
+            }
+        }
+        
+        return finalScore
     }
     
     /**
@@ -294,3 +313,77 @@ data class AIHint(
     val targetSlot: Int? = null,
     val confidence: Double // 0.0 to 1.0
 )
+
+/**
+ * Apply skill effect from ability usage
+ */
+fun applySkillEffect(
+    gameState: GCMSState,
+    playerId: Int,
+    skillId: String,
+    effectType: SkillEffectType,
+    value: Float,
+    duration: Int = -1
+): GCMSState {
+    val newEffect = SkillEffect(
+        skillId = skillId,
+        playerId = playerId,
+        effectType = effectType,
+        value = value,
+        duration = duration
+    )
+    
+    val updatedEffects = gameState.activeSkillEffects.toMutableList()
+    
+    // Remove expired effects for this player and effect type
+    updatedEffects.removeAll { it.playerId == playerId && it.effectType == effectType && it.remainingTurns <= 0 }
+    
+    // Add new effect
+    updatedEffects.add(newEffect)
+    
+    return gameState.copyWith(activeSkillEffects = updatedEffects)
+}
+
+/**
+ * Update skill effects at start of turn
+ */
+fun updateSkillEffects(gameState: GCMSState): GCMSState {
+    val updatedEffects = gameState.activeSkillEffects.map { effect ->
+        if (effect.duration > 0) {
+            effect.copy(remainingTurns = effect.remainingTurns - 1)
+        } else {
+            effect // Permanent effects don't change
+        }
+    }.filter { it.remainingTurns > 0 || it.duration == -1 }
+    
+    return gameState.copyWith(activeSkillEffects = updatedEffects)
+}
+
+/**
+ * Check if player has specific skill effect active
+ */
+fun hasSkillEffect(
+    gameState: GCMSState,
+    playerId: Int,
+    effectType: SkillEffectType
+): Boolean {
+    return gameState.activeSkillEffects.any { 
+        it.playerId == playerId && it.effectType == effectType && 
+        (it.remainingTurns > 0 || it.duration == -1)
+    }
+}
+
+/**
+ * Get skill effect value for player
+ */
+fun getSkillEffectValue(
+    gameState: GCMSState,
+    playerId: Int,
+    effectType: SkillEffectType
+): Float {
+    return gameState.activeSkillEffects
+        .filter { it.playerId == playerId && it.effectType == effectType && 
+                 (it.remainingTurns > 0 || it.duration == -1) }
+        .map { it.value }
+        .firstOrNull() ?: 1.0f
+}

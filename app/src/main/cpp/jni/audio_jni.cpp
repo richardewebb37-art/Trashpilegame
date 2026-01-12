@@ -1,185 +1,188 @@
 #include <jni.h>
 #include <android/log.h>
-#include "../audio/audio_wrapper.h"
+#include <android/asset_manager.h>
+#include <android/asset_manager_jni.h>
+#include "audio/audio_wrapper.h"
 
-#define LOG_TAG "TrashPiles-Audio-JNI"
+#define LOG_TAG "TrashPiles-AudioJNI"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
-extern TrashPiles::AudioWrapper* g_audio;
-
 extern "C" {
 
-/**
- * Initialize the audio engine
- */
+// Global audio instance
+static TrashPiles::AudioWrapper* g_audio = nullptr;
+
+JNIEXPORT jlong JNICALL
+Java_com_trashpiles_AudioEngineBridge_nativeCreateAudioEngine(JNIEnv* env, jobject thiz) {
+    if (g_audio) {
+        LOGE("Audio engine already created");
+        return 0;
+    }
+    
+    g_audio = new TrashPiles::AudioWrapper();
+    LOGI("Audio engine created");
+    return reinterpret_cast<jlong>(g_audio);
+}
+
+JNIEXPORT void JNICALL
+Java_com_trashpiles_AudioEngineBridge_nativeDestroyAudioEngine(JNIEnv* env, jobject thiz, jlong audio_ptr) {
+    TrashPiles::AudioWrapper* audio = reinterpret_cast<TrashPiles::AudioWrapper*>(audio_ptr);
+    if (audio) {
+        delete audio;
+        if (audio == g_audio) {
+            g_audio = nullptr;
+        }
+        LOGI("Audio engine destroyed");
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_trashpiles_AudioEngineBridge_nativeSetAssetManager(JNIEnv* env, jobject thiz, jlong audio_ptr, jobject asset_manager) {
+    TrashPiles::AudioWrapper* audio = reinterpret_cast<TrashPiles::AudioWrapper*>(audio_ptr);
+    if (!audio) return;
+    
+    AAssetManager* assetManager = AAssetManager_fromJava(env, asset_manager);
+    TrashPiles::AudioWrapper::setAssetManager(assetManager);
+    LOGI("Asset manager set for audio engine");
+}
+
 JNIEXPORT jboolean JNICALL
-Java_com_trashpiles_native_AudioEngineBridge_initAudioEngine(
-    JNIEnv* env, jobject obj) {
-    
-    LOGI("JNI: initAudioEngine called");
-    
-    if (!g_audio) {
-        LOGE("Audio instance is null!");
+Java_com_trashpiles_AudioEngineBridge_nativeInitialize(JNIEnv* env, jobject thiz, jlong audio_ptr) {
+    TrashPiles::AudioWrapper* audio = reinterpret_cast<TrashPiles::AudioWrapper*>(audio_ptr);
+    if (!audio) {
+        LOGE("Cannot initialize audio - engine is null");
         return JNI_FALSE;
     }
     
-    bool success = g_audio->initialize();
-    return success ? JNI_TRUE : JNI_FALSE;
+    bool result = audio->initialize();
+    LOGI("Audio engine initialization: %s", result ? "SUCCESS" : "FAILED");
+    return result ? JNI_TRUE : JNI_FALSE;
 }
 
-/**
- * Play a sound effect
- */
 JNIEXPORT void JNICALL
-Java_com_trashpiles_native_AudioEngineBridge_playSound(
-    JNIEnv* env, jobject obj, jstring soundName) {
-    
-    if (!g_audio) return;
-    
-    const char* sound = env->GetStringUTFChars(soundName, nullptr);
-    LOGI("JNI: Playing sound: %s", sound);
-    g_audio->playSound(sound);
-    env->ReleaseStringUTFChars(soundName, sound);
-}
-
-/**
- * Stop a sound effect
- */
-JNIEXPORT void JNICALL
-Java_com_trashpiles_native_AudioEngineBridge_stopSound(
-    JNIEnv* env, jobject obj, jstring soundName) {
-    
-    if (!g_audio) return;
-    
-    const char* sound = env->GetStringUTFChars(soundName, nullptr);
-    g_audio->stopSound(sound);
-    env->ReleaseStringUTFChars(soundName, sound);
-}
-
-/**
- * Stop all sounds
- */
-JNIEXPORT void JNICALL
-Java_com_trashpiles_native_AudioEngineBridge_stopAllSounds(
-    JNIEnv* env, jobject obj) {
-    
-    if (g_audio) {
-        g_audio->stopAllSounds();
+Java_com_trashpiles_AudioEngineBridge_nativeCleanup(JNIEnv* env, jobject thiz, jlong audio_ptr) {
+    TrashPiles::AudioWrapper* audio = reinterpret_cast<TrashPiles::AudioWrapper*>(audio_ptr);
+    if (audio) {
+        audio->cleanup();
+        LOGI("Audio engine cleanup completed");
     }
 }
 
-/**
- * Play background music
- */
 JNIEXPORT void JNICALL
-Java_com_trashpiles_native_AudioEngineBridge_playMusic(
-    JNIEnv* env, jobject obj, jstring musicName, jboolean loop) {
+Java_com_trashpiles_AudioEngineBridge_nativePlaySound(JNIEnv* env, jobject thiz, jlong audio_ptr, jstring sound_name) {
+    TrashPiles::AudioWrapper* audio = reinterpret_cast<TrashPiles::AudioWrapper*>(audio_ptr);
+    if (!audio) return;
     
-    if (!g_audio) return;
-    
-    const char* music = env->GetStringUTFChars(musicName, nullptr);
-    LOGI("JNI: Playing music: %s (loop: %s)", music, loop ? "yes" : "no");
-    g_audio->playMusic(music, loop == JNI_TRUE);
-    env->ReleaseStringUTFChars(musicName, music);
-}
-
-/**
- * Stop background music
- */
-JNIEXPORT void JNICALL
-Java_com_trashpiles_native_AudioEngineBridge_stopMusic(
-    JNIEnv* env, jobject obj) {
-    
-    if (g_audio) {
-        g_audio->stopMusic();
+    const char* soundNameStr = env->GetStringUTFChars(sound_name, nullptr);
+    if (soundNameStr) {
+        audio->playSound(soundNameStr);
+        env->ReleaseStringUTFChars(sound_name, soundNameStr);
     }
 }
 
-/**
- * Pause background music
- */
 JNIEXPORT void JNICALL
-Java_com_trashpiles_native_AudioEngineBridge_pauseMusic(
-    JNIEnv* env, jobject obj) {
+Java_com_trashpiles_AudioEngineBridge_nativeStopSound(JNIEnv* env, jobject thiz, jlong audio_ptr, jstring sound_name) {
+    TrashPiles::AudioWrapper* audio = reinterpret_cast<TrashPiles::AudioWrapper*>(audio_ptr);
+    if (!audio) return;
     
-    if (g_audio) {
-        g_audio->pauseMusic();
+    const char* soundNameStr = env->GetStringUTFChars(sound_name, nullptr);
+    if (soundNameStr) {
+        audio->stopSound(soundNameStr);
+        env->ReleaseStringUTFChars(sound_name, soundNameStr);
     }
 }
 
-/**
- * Resume background music
- */
 JNIEXPORT void JNICALL
-Java_com_trashpiles_native_AudioEngineBridge_resumeMusic(
-    JNIEnv* env, jobject obj) {
-    
-    if (g_audio) {
-        g_audio->resumeMusic();
+Java_com_trashpiles_AudioEngineBridge_nativeStopAllSounds(JNIEnv* env, jobject thiz, jlong audio_ptr) {
+    TrashPiles::AudioWrapper* audio = reinterpret_cast<TrashPiles::AudioWrapper*>(audio_ptr);
+    if (audio) {
+        audio->stopAllSounds();
     }
 }
 
-/**
- * Set sound effects volume
- */
 JNIEXPORT void JNICALL
-Java_com_trashpiles_native_AudioEngineBridge_setSoundVolume(
-    JNIEnv* env, jobject obj, jfloat volume) {
+Java_com_trashpiles_AudioEngineBridge_nativePlayMusic(JNIEnv* env, jobject thiz, jlong audio_ptr, jstring music_name, jboolean loop) {
+    TrashPiles::AudioWrapper* audio = reinterpret_cast<TrashPiles::AudioWrapper*>(audio_ptr);
+    if (!audio) return;
     
-    if (g_audio) {
-        g_audio->setSoundVolume(volume);
+    const char* musicNameStr = env->GetStringUTFChars(music_name, nullptr);
+    if (musicNameStr) {
+        audio->playMusic(musicNameStr, loop);
+        env->ReleaseStringUTFChars(music_name, musicNameStr);
     }
 }
 
-/**
- * Set music volume
- */
 JNIEXPORT void JNICALL
-Java_com_trashpiles_native_AudioEngineBridge_setMusicVolume(
-    JNIEnv* env, jobject obj, jfloat volume) {
-    
-    if (g_audio) {
-        g_audio->setMusicVolume(volume);
+Java_com_trashpiles_AudioEngineBridge_nativeStopMusic(JNIEnv* env, jobject thiz, jlong audio_ptr) {
+    TrashPiles::AudioWrapper* audio = reinterpret_cast<TrashPiles::AudioWrapper*>(audio_ptr);
+    if (audio) {
+        audio->stopMusic();
     }
 }
 
-/**
- * Set master volume
- */
 JNIEXPORT void JNICALL
-Java_com_trashpiles_native_AudioEngineBridge_setMasterVolume(
-    JNIEnv* env, jobject obj, jfloat volume) {
-    
-    if (g_audio) {
-        g_audio->setMasterVolume(volume);
+Java_com_trashpiles_AudioEngineBridge_nativePauseMusic(JNIEnv* env, jobject thiz, jlong audio_ptr) {
+    TrashPiles::AudioWrapper* audio = reinterpret_cast<TrashPiles::AudioWrapper*>(audio_ptr);
+    if (audio) {
+        audio->pauseMusic();
     }
 }
 
-/**
- * Check if music is playing
- */
+JNIEXPORT void JNICALL
+Java_com_trashpiles_AudioEngineBridge_nativeResumeMusic(JNIEnv* env, jobject thiz, jlong audio_ptr) {
+    TrashPiles::AudioWrapper* audio = reinterpret_cast<TrashPiles::AudioWrapper*>(audio_ptr);
+    if (audio) {
+        audio->resumeMusic();
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_trashpiles_AudioEngineBridge_nativeSetSoundVolume(JNIEnv* env, jobject thiz, jlong audio_ptr, jfloat volume) {
+    TrashPiles::AudioWrapper* audio = reinterpret_cast<TrashPiles::AudioWrapper*>(audio_ptr);
+    if (audio) {
+        audio->setSoundVolume(volume);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_trashpiles_AudioEngineBridge_nativeSetMusicVolume(JNIEnv* env, jobject thiz, jlong audio_ptr, jfloat volume) {
+    TrashPiles::AudioWrapper* audio = reinterpret_cast<TrashPiles::AudioWrapper*>(audio_ptr);
+    if (audio) {
+        audio->setMusicVolume(volume);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_trashpiles_AudioEngineBridge_nativeSetMasterVolume(JNIEnv* env, jobject thiz, jlong audio_ptr, jfloat volume) {
+    TrashPiles::AudioWrapper* audio = reinterpret_cast<TrashPiles::AudioWrapper*>(audio_ptr);
+    if (audio) {
+        audio->setMasterVolume(volume);
+    }
+}
+
 JNIEXPORT jboolean JNICALL
-Java_com_trashpiles_native_AudioEngineBridge_isMusicPlaying(
-    JNIEnv* env, jobject obj) {
-    
-    if (!g_audio) return JNI_FALSE;
-    
-    return g_audio->isMusicPlaying() ? JNI_TRUE : JNI_FALSE;
+Java_com_trashpiles_AudioEngineBridge_nativeIsMusicPlaying(JNIEnv* env, jobject thiz, jlong audio_ptr) {
+    TrashPiles::AudioWrapper* audio = reinterpret_cast<TrashPiles::AudioWrapper*>(audio_ptr);
+    if (audio) {
+        return audio->isMusicPlaying() ? JNI_TRUE : JNI_FALSE;
+    }
+    return JNI_FALSE;
 }
 
-/**
- * Cleanup audio engine
- */
-JNIEXPORT void JNICALL
-Java_com_trashpiles_native_AudioEngineBridge_cleanup(
-    JNIEnv* env, jobject obj) {
+JNIEXPORT jboolean JNICALL
+Java_com_trashpiles_AudioEngineBridge_nativeIsSoundPlaying(JNIEnv* env, jobject thiz, jlong audio_ptr, jstring sound_name) {
+    TrashPiles::AudioWrapper* audio = reinterpret_cast<TrashPiles::AudioWrapper*>(audio_ptr);
+    if (!audio) return JNI_FALSE;
     
-    LOGI("JNI: cleanup called");
-    
-    if (g_audio) {
-        g_audio->cleanup();
+    const char* soundNameStr = env->GetStringUTFChars(sound_name, nullptr);
+    if (soundNameStr) {
+        bool result = audio->isSoundPlaying(soundNameStr);
+        env->ReleaseStringUTFChars(sound_name, soundNameStr);
+        return result ? JNI_TRUE : JNI_FALSE;
     }
+    
+    return JNI_FALSE;
 }
 
 } // extern "C"

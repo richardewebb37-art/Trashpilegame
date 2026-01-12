@@ -36,10 +36,22 @@ data class GCMSState(
     
     // Skill &amp; Ability System (transient - not serialized by default)
     @kotlinx.serialization.Transient
-    val skillAbilitySystem: SkillAbilitySystemState = SkillAbilitySystemState()
+    val skillAbilitySystem: SkillAbilitySystemState = SkillAbilitySystemState(),
+    
     // Challenge System (transient - not serialized by default)
     @kotlinx.serialization.Transient
-    val challengeSystem: PlayerChallengeData = PlayerChallengeData()
+    val challengeSystem: PlayerChallengeData = PlayerChallengeData(),
+    
+    // Active skill effects for gameplay integration
+    @kotlinx.serialization.Transient
+    val activeSkillEffects: List<SkillEffect> = emptyList(),
+    
+    // Skills & Abilities database (transient - loaded from assets)
+    @kotlinx.serialization.Transient
+    val skillsDatabase: SkillsDatabase = SkillsDatabase(),
+    
+    @kotlinx.serialization.Transient
+    val abilitiesDatabase: AbilitiesDatabase = AbilitiesDatabase()
 ) {
     
     /**
@@ -70,7 +82,11 @@ data class GCMSState(
         lastActionTime: Long? = null,
         currentRound: Int? = null,
         winnerId: Int? = null,
-        skillAbilitySystem: SkillAbilitySystemState? = null
+        skillAbilitySystem: SkillAbilitySystemState? = null,
+        challengeSystem: PlayerChallengeData? = null,
+        activeSkillEffects: List<SkillEffect>? = null,
+        skillsDatabase: SkillsDatabase? = null,
+        abilitiesDatabase: AbilitiesDatabase? = null
     ): GCMSState {
         return GCMSState(
             currentPhase = currentPhase ?: this.currentPhase,
@@ -85,7 +101,11 @@ data class GCMSState(
             lastActionTime = lastActionTime ?: this.lastActionTime,
             currentRound = currentRound ?: this.currentRound,
             winnerId = winnerId ?: this.winnerId,
-            skillAbilitySystem = skillAbilitySystem ?: this.skillAbilitySystem
+            skillAbilitySystem = skillAbilitySystem ?: this.skillAbilitySystem,
+            challengeSystem = challengeSystem ?: this.challengeSystem,
+            activeSkillEffects = activeSkillEffects ?: this.activeSkillEffects,
+            skillsDatabase = skillsDatabase ?: this.skillsDatabase,
+            abilitiesDatabase = abilitiesDatabase ?: this.abilitiesDatabase
         )
     }
 }
@@ -166,3 +186,46 @@ data class CardState(
         )
     }
 }
+
+/**
+ * Skill effect for active gameplay integration
+ */
+@Serializable
+data class SkillEffect(
+    val skillId: String,
+    val playerId: Int,
+    val effectType: SkillEffectType,
+    val value: Float,
+    val duration: Int, // turns or permanent (-1)
+    val remainingTurns: Int = duration
+)
+
+/**
+ * Types of skill effects that modify gameplay
+ */
+enum class SkillEffectType {
+    SCORE_MULTIPLIER,    // Multiply score gains
+    DRAW_BONUS,          // Extra cards per turn
+    DISCOUNT_COST,       // Reduce ability costs
+    WILD_CARD_BONUS,     // Extra wild card uses
+    LUCKY_DRAW,          // Better draw chances
+    SHIELD,              // Protection from penalties
+    DOUBLE_POINTS,       // Double points for actions
+    INSTANT_PLACE        // Place cards without restrictions
+}
+
+/**
+ * Skills Database - contains all available skills
+ */
+@Serializable
+data class SkillsDatabase(
+    val skills: Map<String, SkillNode> = emptyMap()
+)
+
+/**
+ * Abilities Database - contains all available abilities  
+ */
+@Serializable
+data class AbilitiesDatabase(
+    val abilities: Map<String, AbilityNode> = emptyMap()
+)
