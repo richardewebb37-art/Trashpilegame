@@ -1,0 +1,423 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#2E7D32"
+    tools:context=".presentation.GameActivity">
+
+    <!-- Game Surface View (for native rendering) -->
+    <SurfaceView
+        android:id="@+id/gameSurface"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- ==================== CENTER AREA ==================== -->
+    
+    <!-- Deck Card -->
+    <View
+        android:id="@+id/deckCard"
+        android:layout_width="60dp"
+        android:layout_height="90dp"
+        android:background="@drawable/card_back"
+        android:elevation="8dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/smileyFace" />
+
+    <!-- Smiley Face -->
+    <com.trashpiles.presentation.components.SmileyFaceView
+        android:id="@+id/smileyFace"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@id/deckCard"
+        app:layout_constraintEnd_toStartOf="@id/trashCard" />
+
+    <!-- Trash/Discard Pile -->
+    <View
+        android:id="@+id/trashCard"
+        android:layout_width="60dp"
+        android:layout_height="90dp"
+        android:background="@drawable/card_back"
+        android:elevation="8dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@id/smileyFace"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- ==================== TOP LEFT PLAYER (P1) ==================== -->
+    
+    <LinearLayout
+        android:id="@+id/player1Layout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:background="@drawable/player_background"
+        android:elevation="4dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <!-- Player Label -->
+        <TextView
+            android:id="@+id/player1Label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="P1"
+            android:textSize="20sp"
+            android:textColor="#E53935"
+            android:textStyle="bold"
+            android:padding="4dp" />
+
+        <!-- Ability Button -->
+        <Button
+            android:id="@+id/player1Ability"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Ability"
+            android:textSize="12sp"
+            android:backgroundTint="#FF6F00" />
+
+        <!-- Skill Numbers -->
+        <TextView
+            android:id="@+id/player1Skills"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="[6][7][8][9][10]"
+            android:textSize="14sp"
+            android:textColor="#FFFFFF" />
+
+        <!-- Skill Button -->
+        <Button
+            android:id="@+id/player1Skill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Skill"
+            android:textSize="12sp"
+            android:backgroundTint="#FF6F00" />
+
+        <!-- Player Slots -->
+        <LinearLayout
+            android:id="@+id/player1Slots"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <TextView android:text="[1]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[2]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[3]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[4]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[5]" android:textSize="12sp" android:textColor="#FFFFFF" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/player1Slots2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView android:text="[6]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[7]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[8]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[9]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[10]" android:textSize="12sp" android:textColor="#FFFFFF" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ==================== TOP RIGHT PLAYER (P4) ==================== -->
+    
+    <LinearLayout
+        android:id="@+id/player4Layout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:background="@drawable/player_background"
+        android:elevation="4dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Player Label -->
+        <TextView
+            android:id="@+id/player4Label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="P4"
+            android:textSize="20sp"
+            android:textColor="#FDD835"
+            android:textStyle="bold"
+            android:padding="4dp" />
+
+        <!-- Ability Button -->
+        <Button
+            android:id="@+id/player4Ability"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Ability"
+            android:textSize="12sp"
+            android:backgroundTint="#FF6F00" />
+
+        <!-- Skill Numbers -->
+        <TextView
+            android:id="@+id/player4Skills"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="[6][7][8][9][10]"
+            android:textSize="14sp"
+            android:textColor="#FFFFFF" />
+
+        <!-- Skill Button -->
+        <Button
+            android:id="@+id/player4Skill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Skill"
+            android:textSize="12sp"
+            android:backgroundTint="#FF6F00" />
+
+        <!-- Player Slots -->
+        <LinearLayout
+            android:id="@+id/player4Slots"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <TextView android:text="[1]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[2]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[3]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[4]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[5]" android:textSize="12sp" android:textColor="#FFFFFF" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/player4Slots2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView android:text="[6]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[7]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[8]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[9]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[10]" android:textSize="12sp" android:textColor="#FFFFFF" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ==================== BOTTOM LEFT PLAYER (P5/P2) ==================== -->
+    
+    <LinearLayout
+        android:id="@+id/player5Layout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:background="@drawable/player_background"
+        android:elevation="4dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <!-- Player Label -->
+        <TextView
+            android:id="@+id/player5Label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="P5"
+            android:textSize="20sp"
+            android:textColor="#1E88E5"
+            android:textStyle="bold"
+            android:padding="4dp" />
+
+        <!-- Player Slots -->
+        <LinearLayout
+            android:id="@+id/player5Slots"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <TextView android:text="[1]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[2]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[3]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[4]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[5]" android:textSize="12sp" android:textColor="#FFFFFF" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/player5Slots2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView android:text="[6]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[7]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[8]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[9]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[10]" android:textSize="12sp" android:textColor="#FFFFFF" />
+        </LinearLayout>
+
+        <!-- Skill Button -->
+        <Button
+            android:id="@+id/player5Skill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Skill"
+            android:textSize="12sp"
+            android:backgroundTint="#FF6F00" />
+
+        <!-- Skill Numbers -->
+        <TextView
+            android:id="@+id/player5Skills"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="[6][7][8][9][10]"
+            android:textSize="14sp"
+            android:textColor="#FFFFFF" />
+
+        <!-- Ability Button -->
+        <Button
+            android:id="@+id/player5Ability"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Ability"
+            android:textSize="12sp"
+            android:backgroundTint="#FF6F00" />
+    </LinearLayout>
+
+    <!-- ==================== BOTTOM RIGHT PLAYER (P6/P3) ==================== -->
+    
+    <LinearLayout
+        android:id="@+id/player6Layout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:background="@drawable/player_background"
+        android:elevation="4dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Player Label -->
+        <TextView
+            android:id="@+id/player6Label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="P6"
+            android:textSize="20sp"
+            android:textColor="#43A047"
+            android:textStyle="bold"
+            android:padding="4dp" />
+
+        <!-- Player Slots -->
+        <LinearLayout
+            android:id="@+id/player6Slots"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <TextView android:text="[1]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[2]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[3]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[4]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[5]" android:textSize="12sp" android:textColor="#FFFFFF" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/player6Slots2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView android:text="[6]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[7]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[8]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[9]" android:textSize="12sp" android:textColor="#FFFFFF" />
+            <TextView android:text="[10]" android:textSize="12sp" android:textColor="#FFFFFF" />
+        </LinearLayout>
+
+        <!-- Skill Button -->
+        <Button
+            android:id="@+id/player6Skill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Skill"
+            android:textSize="12sp"
+            android:backgroundTint="#FF6F00" />
+
+        <!-- Skill Numbers -->
+        <TextView
+            android:id="@+id/player6Skills"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="[6][7][8][9][10]"
+            android:textSize="14sp"
+            android:textColor="#FFFFFF" />
+
+        <!-- Ability Button -->
+        <Button
+            android:id="@+id/player6Ability"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Ability"
+            android:textSize="12sp"
+            android:backgroundTint="#FF6F00" />
+    </LinearLayout>
+
+    <!-- ==================== INDICATORS ==================== -->
+    
+    <!-- Turn Indicator -->
+    <TextView
+        android:id="@+id/turnIndicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:text="Player 1's Turn"
+        android:textSize="18sp"
+        android:textColor="@android:color/white"
+        android:textStyle="bold"
+        android:background="#80000000"
+        android:padding="8dp"
+        android:elevation="4dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Round Indicator -->
+    <TextView
+        android:id="@+id/roundIndicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:text="Round 1"
+        android:textSize="16sp"
+        android:textColor="@android:color/white"
+        android:background="#80000000"
+        android:padding="8dp"
+        android:elevation="4dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

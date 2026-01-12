@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Card Base -->
+    <shape android:shape="rectangle">
+        <solid android:color="#F5F5DC" />
+        <corners android:radius="8dp" />
+        <stroke android:width="2dp" android:color="#FFD700" />
+    </shape>
+    
+    <!-- Card Pattern -->
+    <item android:left="8dp" android:top="8dp" android:right="8dp" android:bottom="8dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#E8E8C8" />
+            <corners android:radius="4dp" />
+        </shape>
+    </item>
+    
+    <!-- Decorative Diamond -->
+    <item
+        android:width="20dp"
+        android:height="20dp"
+        android:gravity="center">
+        <rotate android:fromDegrees="45" android:toDegrees="45">
+            <shape android:shape="rectangle">
+                <solid android:color="#D4D4A8" />
+            </shape>
+        </rotate>
+    </item>
+</layer-list>
