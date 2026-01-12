@@ -37,6 +37,9 @@ data class GCMSState(
     // Skill &amp; Ability System (transient - not serialized by default)
     @kotlinx.serialization.Transient
     val skillAbilitySystem: SkillAbilitySystemState = SkillAbilitySystemState()
+    // Challenge System (transient - not serialized by default)
+    @kotlinx.serialization.Transient
+    val challengeSystem: PlayerChallengeData = PlayerChallengeData()
 ) {
     
     /**

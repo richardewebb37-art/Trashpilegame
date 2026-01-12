@@ -246,3 +246,55 @@ data class LevelUpEvent(
     override val timestamp: Long = System.currentTimeMillis(),
     override val eventId: String = generateId()
 ) : GCMSEvent()
+
+// ============================================================================
+// CHALLENGE EVENTS
+// ============================================================================
+
+@Serializable
+data class ChallengeAssignedEvent(
+    val level: Int,
+    val challengeIds: List<String>,
+    val requiredToComplete: Int,
+    override val timestamp: Long = System.currentTimeMillis(),
+    override val eventId: String = generateId()
+) : GCMSEvent()
+
+@Serializable
+data class ChallengeProgressUpdatedEvent(
+    val challengeId: String,
+    val challengeName: String,
+    val progress: Map<String, Any>,
+    val isComplete: Boolean,
+    override val timestamp: Long = System.currentTimeMillis(),
+    override val eventId: String = generateId()
+) : GCMSEvent()
+
+@Serializable
+data class ChallengeCompletedEvent(
+    val challengeId: String,
+    val challengeName: String,
+    val achievement: String,
+    val pointsBonus: Int,
+    val xpBonus: Int,
+    override val timestamp: Long = System.currentTimeMillis(),
+    override val eventId: String = generateId()
+) : GCMSEvent()
+
+@Serializable
+data class AllChallengesCompletedEvent(
+    val level: Int,
+    val completedChallenges: List<String>,
+    val newAchievements: List<String>,
+    override val timestamp: Long = System.currentTimeMillis(),
+    override val eventId: String = generateId()
+) : GCMSEvent()
+
+@Serializable
+data class LevelUnlockedEvent(
+    val unlockedLevel: Int,
+    val completedChallenges: List<String>,
+    val newAchievements: List<String>,
+    override val timestamp: Long = System.currentTimeMillis(),
+    override val eventId: String = generateId()
+) : GCMSEvent()
